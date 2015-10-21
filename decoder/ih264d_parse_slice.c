@@ -405,9 +405,36 @@ WORD32 ih264d_start_of_pic(dec_struct_t *ps_dec,
             ps_cur_pic = (pic_buffer_t *)ih264_buf_mgr_get_next_free(
                             (buf_mgr_t *)ps_dec->pv_pic_buf_mgr,
                             &cur_pic_buf_id);
+
+            /* In case of IDR slices, if there is no free picture buffer, then release
+             * all buffers from display and reference
+             */
+            if((ps_cur_pic == NULL) && (ps_cur_slice->u1_nal_unit_type == IDR_SLICE_NAL))
+            {
+                WORD32 j;
+
+                for(j = 0; j < MAX_DISP_BUFS_NEW; j++)
+                {
+                    ih264_buf_mgr_release((buf_mgr_t *)ps_dec->pv_pic_buf_mgr,
+                                          j,
+                                          BUF_MGR_REF);
+                    ih264_buf_mgr_release((buf_mgr_t *)ps_dec->pv_mv_buf_mgr,
+                                          ps_dec->au1_pic_buf_id_mv_buf_id_map[j],
+                                          BUF_MGR_REF);
+
+                    ih264_buf_mgr_release((buf_mgr_t *)ps_dec->pv_pic_buf_mgr,
+                                          j,
+                                          BUF_MGR_IO);
+                }
+                ps_cur_pic = (pic_buffer_t *)ih264_buf_mgr_get_next_free(
+                                (buf_mgr_t *)ps_dec->pv_pic_buf_mgr,
+                                &cur_pic_buf_id);
+            }
+
             if(ps_cur_pic == NULL)
             {
                 ps_dec->i4_error_code = ERROR_UNAVAIL_PICBUF_T;
+                ps_dec->ps_dec_err_status->u1_err_flag |= REJECT_CUR_PIC;
                 return ERROR_UNAVAIL_PICBUF_T;
             }
             if(0 == ps_dec->u4_disp_buf_mapping[cur_pic_buf_id])
@@ -421,6 +448,7 @@ WORD32 ih264d_start_of_pic(dec_struct_t *ps_dec,
         if(ps_col_mv == NULL)
         {
             ps_dec->i4_error_code = ERROR_UNAVAIL_MVBUF_T;
+            ps_dec->ps_dec_err_status->u1_err_flag |= REJECT_CUR_PIC;
             return ERROR_UNAVAIL_MVBUF_T;
         }
 
@@ -440,59 +468,6 @@ WORD32 ih264d_start_of_pic(dec_struct_t *ps_dec,
             /*make first entry of list0 point to cur pic,so that if first Islice is in error, ref pic struct will have valid entries*/
             ps_dec->ps_ref_pic_buf_lx[0] = ps_dec->ps_dpb_mgr->ps_init_dpb[0];
             *(ps_dec->ps_dpb_mgr->ps_init_dpb[0][0]) = *ps_cur_pic;
-        }
-
-        if(!ps_dec->ps_cur_pic)
-        {
-            WORD32 j;
-            H264_DEC_DEBUG_PRINT("------- Display Buffers Reset --------\n");
-            for(j = 0; j < MAX_DISP_BUFS_NEW; j++)
-            {
-
-                ih264_buf_mgr_release((buf_mgr_t *)ps_dec->pv_pic_buf_mgr,
-                                      j,
-                                      BUF_MGR_REF);
-                ih264_buf_mgr_release((buf_mgr_t *)ps_dec->pv_mv_buf_mgr,
-                                      ps_dec->au1_pic_buf_id_mv_buf_id_map[j],
-                                      BUF_MGR_REF);
-                ih264_buf_mgr_release((buf_mgr_t *)ps_dec->pv_pic_buf_mgr,
-                                      j,
-                                      BUF_MGR_IO);
-            }
-
-            ps_dec->i4_cur_display_seq = 0;
-            ps_dec->i4_prev_max_display_seq = 0;
-            ps_dec->i4_max_poc = 0;
-
-            ps_cur_pic = (pic_buffer_t *)ih264_buf_mgr_get_next_free(
-                            (buf_mgr_t *)ps_dec->pv_pic_buf_mgr,
-                            &cur_pic_buf_id);
-            if(ps_cur_pic == NULL)
-            {
-                ps_dec->i4_error_code = ERROR_UNAVAIL_PICBUF_T;
-                return ERROR_UNAVAIL_PICBUF_T;
-            }
-
-            ps_col_mv = (col_mv_buf_t *)ih264_buf_mgr_get_next_free((buf_mgr_t *)ps_dec->pv_mv_buf_mgr,
-                                                                   &cur_mv_buf_id);
-            if(ps_col_mv == NULL)
-            {
-                ps_dec->i4_error_code = ERROR_UNAVAIL_MVBUF_T;
-                return ERROR_UNAVAIL_MVBUF_T;
-            }
-
-            ps_dec->ps_cur_pic = ps_cur_pic;
-            ps_dec->u1_pic_buf_id = cur_pic_buf_id;
-            ps_cur_pic->u4_ts = ps_dec->u4_ts;
-            ps_dec->apv_buf_id_pic_buf_map[cur_pic_buf_id] = (void *)ps_cur_pic;
-
-            ps_cur_pic->u1_mv_buf_id = cur_mv_buf_id;
-            ps_dec->au1_pic_buf_id_mv_buf_id_map[cur_pic_buf_id] = cur_mv_buf_id;
-
-            ps_cur_pic->pu1_col_zero_flag = (UWORD8 *)ps_col_mv->pv_col_zero_flag;
-            ps_cur_pic->ps_mv = (mv_pred_t *)ps_col_mv->pv_mv;
-            ps_dec->au1_pic_buf_ref_flag[cur_pic_buf_id] = 0;
-
         }
 
         ps_dec->ps_cur_pic->u1_picturetype = u1_field_pic_flag;
@@ -1259,8 +1234,11 @@ WORD32 ih264d_parse_decode_slice(UWORD8 u1_is_idr_slice,
     /*--------------------------------------------------------------------*/
     /* Check if the slice is part of new picture                          */
     /*--------------------------------------------------------------------*/
-    i1_is_end_of_poc = 0;
-    if(!ps_dec->u1_first_slice_in_stream)
+    /* First slice of a picture is always considered as part of new picture */
+    i1_is_end_of_poc = 1;
+    ps_dec->ps_dec_err_status->u1_err_flag &= MASK_REJECT_CUR_PIC;
+
+    if(ps_dec->u4_first_slice_in_pic != 2)
     {
         i1_is_end_of_poc = ih264d_is_end_of_pic(u2_frame_num, u1_nal_ref_idc,
                                             &s_tmp_poc, &ps_dec->s_cur_pic_poc,
@@ -1268,23 +1246,6 @@ WORD32 ih264d_parse_decode_slice(UWORD8 u1_is_idr_slice,
                                             u1_nal_unit_type, u4_idr_pic_id,
                                             u1_field_pic_flag,
                                             u1_bottom_field_flag);
-
-        /* since we support only Full frame decode, every new process should
-         * process a new pic
-         */
-        if((ps_dec->u4_first_slice_in_pic == 2) && (i1_is_end_of_poc == 0))
-        {
-            /* if it is the first slice is process call ,it should be a new frame. If it is not
-             * reject current pic and dont add it to dpb
-             */
-            ps_dec->ps_dec_err_status->u1_err_flag |= REJECT_CUR_PIC;
-            i1_is_end_of_poc = 1;
-        }
-        else
-        {
-            /* reset REJECT_CUR_PIC */
-            ps_dec->ps_dec_err_status->u1_err_flag &= MASK_REJECT_CUR_PIC;
-        }
     }
 
     /*--------------------------------------------------------------------*/

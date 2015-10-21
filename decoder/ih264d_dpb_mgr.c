@@ -193,11 +193,7 @@ WORD32 ih264d_delete_lt_node(dpb_manager_t *ps_dpb_mgr,
 
                     if(!u1_deleted)
                     {
-
-                        UWORD32 i4_error_code;
-                        i4_error_code = ERROR_DBP_MANAGER_T;
-
-                        return i4_error_code;
+                        return 0;
                     }
                 }
 
@@ -262,12 +258,7 @@ WORD32 ih264d_insert_lt_node(dpb_manager_t *ps_dpb_mgr,
                     u1_mark_bot_field_long_term = 1;
                 else
                 {
-
-                    UWORD32 i4_error_code;
-                    i4_error_code = ERROR_DBP_MANAGER_T;
-
-                    return i4_error_code;
-
+                    return 0;
                 }
             }
             else if(ps_mov_node->s_top_field.u1_reference_info == IS_LONG_TERM)
@@ -277,9 +268,7 @@ WORD32 ih264d_insert_lt_node(dpb_manager_t *ps_dpb_mgr,
 
             if(!(u1_mark_top_field_long_term || u1_mark_bot_field_long_term))
             {
-                UWORD32 i4_error_code;
-                i4_error_code = ERROR_DBP_MANAGER_T;
-                return i4_error_code;
+                return 0;
             }
         }
         else
@@ -383,9 +372,7 @@ WORD32 ih264d_insert_st_node(dpb_manager_t *ps_dpb_mgr,
     }
     if(i == MAX_REF_BUFS)
     {
-        UWORD32 i4_error_code;
-        i4_error_code = ERROR_DBP_MANAGER_T;
-        return i4_error_code;
+        return 0;
     }
 
     /* Create dpb info */
@@ -482,24 +469,7 @@ WORD32 ih264d_delete_st_node_or_make_lt(dpb_manager_t *ps_dpb_mgr,
                 if(ret != OK)
                     return ret;
             }
-            else
-            {
-                UWORD32 i4_error_code;
-                i4_error_code = ERROR_DBP_MANAGER_T;
-
-                return i4_error_code;
-            }
-
-            if(u1_del_st)
-            {
-                UWORD32 i4_error_code;
-                i4_error_code = ERROR_DBP_MANAGER_T;
-                return i4_error_code;
-            }
-            else
-            {
-                return 0;
-            }
+            return 0;
         }
         else
             ps_unmark_node = ps_next_dpb->ps_prev_short;
@@ -760,9 +730,7 @@ WORD32 ih264d_ref_idx_reordering(dec_struct_t *ps_dec, UWORD8 uc_lx)
             }
             if(i == (ps_cur_slice->u1_initial_list_size[uc_lx]))
             {
-                UWORD32 i4_error_code;
-                i4_error_code = ERROR_DBP_MANAGER_T;
-                return i4_error_code;
+                return 0;
             }
 
             u2_def_mod_flag |= (1 << i);
@@ -785,9 +753,7 @@ WORD32 ih264d_ref_idx_reordering(dec_struct_t *ps_dec, UWORD8 uc_lx)
             }
             if(i == (ps_cur_slice->u1_initial_list_size[uc_lx]))
             {
-                UWORD32 i4_error_code;
-                i4_error_code = ERROR_DBP_MANAGER_T;
-                return i4_error_code;
+                return 0;
             }
 
             u2_def_mod_flag |= (1 << i);
@@ -986,9 +952,7 @@ WORD32 ih264d_do_mmco_buffer(dpb_commands_t *ps_dpb_cmds,
             UWORD8 u1_new_node_flag = 1;
             if((0 == ps_dpb_mgr->u1_num_st_ref_bufs) && (0 == u1_num_gaps))
             {
-                UWORD32 i4_error_code;
-                i4_error_code = ERROR_DBP_MANAGER_T;
-                return i4_error_code;
+                return 0;
             }
 
             // Chase the links to reach the last but one picNum, if available
@@ -1009,9 +973,7 @@ WORD32 ih264d_do_mmco_buffer(dpb_commands_t *ps_dpb_cmds,
                 {
                     if(ps_next_dpb == NULL)
                     {
-                        UWORD32 i4_error_code;
-                        i4_error_code = ERROR_DBP_MANAGER_T;
-                        return i4_error_code;
+                        return 0;
                     }
                     if(ps_next_dpb->i4_frame_num == (WORD32)u4_cur_pic_num)
                     {
@@ -1026,9 +988,7 @@ WORD32 ih264d_do_mmco_buffer(dpb_commands_t *ps_dpb_cmds,
 
                 if(ps_next_dpb->ps_prev_short->ps_prev_short != NULL)
                 {
-                    UWORD32 i4_error_code;
-                    i4_error_code = ERROR_DBP_MANAGER_T;
-                    return i4_error_code;
+                    return 0;
                 }
 
                 if(u1_new_node_flag)
@@ -1113,9 +1073,7 @@ WORD32 ih264d_do_mmco_buffer(dpb_commands_t *ps_dpb_cmds,
                         return ret;
                     if(u1_del_node)
                     {
-                        UWORD32 i4_error_code;
-                        i4_error_code = ERROR_DBP_MANAGER_T;
-                        return i4_error_code;
+                        return 0;
                     }
                 }
             }
@@ -1179,9 +1137,7 @@ WORD32 ih264d_do_mmco_buffer(dpb_commands_t *ps_dpb_cmds,
                         return ret;
                     if(i4_status)
                     {
-                        UWORD32 i4_error_code;
-                        i4_error_code = ERROR_DBP_MANAGER_T;
-                        return i4_error_code;
+                        return 0;
                     }
                     break;
                 }
@@ -1433,9 +1389,7 @@ WORD32 ih264d_delete_gap_frm_sliding(dpb_manager_t *ps_dpb_mgr,
         }
         if(INVALID_FRAME_NUM == i4_gap_frame_num)
         {
-            UWORD32 i4_error_code;
-            i4_error_code = ERROR_DBP_MANAGER_T;
-            return i4_error_code;
+            return 0;
         }
     }
 
@@ -1556,9 +1510,7 @@ WORD32 ih264d_delete_gap_frm_mmco(dpb_manager_t *ps_dpb_mgr,
                                 && ((i4_frame_num + i4_max_frm_num)
                                                 <= i4_end_frm_num))
                 {
-                    UWORD32 i4_error_code;
-                    i4_error_code = ERROR_DBP_MANAGER_T;
-                    return i4_error_code;
+                    return 0;
                 }
             }
         }
@@ -1575,9 +1527,7 @@ WORD32 ih264d_delete_gap_frm_mmco(dpb_manager_t *ps_dpb_mgr,
     {
         if(j == MAX_FRAMES)
         {
-            UWORD32 i4_error_code;
-            i4_error_code = ERROR_DBP_MANAGER_T;
-            return i4_error_code;
+            return 0;
         }
 
         ps_dpb_mgr->ai4_poc_buf_id_map[j][0] = -1;
@@ -1596,9 +1546,7 @@ WORD32 ih264d_delete_gap_frm_mmco(dpb_manager_t *ps_dpb_mgr,
     }
     else
     {
-        UWORD32 i4_error_code;
-        i4_error_code = ERROR_DBP_MANAGER_T;
-        return i4_error_code;
+        return 0;
     }
 
     return OK;
@@ -1657,16 +1605,14 @@ WORD32 ih264d_do_mmco_for_gaps(dpb_manager_t *ps_dpb_mgr,
                     {
                         if(ps_next_dpb == NULL)
                         {
-                            UWORD32 i4_error_code;
-                            i4_error_code = ERROR_DBP_MANAGER_T;
-                            return i4_error_code;
+                            return 0;
                         }
                         ps_next_dpb = ps_next_dpb->ps_prev_short;
                     }
 
                     if(ps_next_dpb->ps_prev_short->ps_prev_short != NULL)
                     {
-                        return ERROR_DBP_MANAGER_T;
+                        return 0;
                     }
 
                     if(u1_num_gaps)
@@ -1731,7 +1677,7 @@ WORD32 ih264d_do_mmco_for_gaps(dpb_manager_t *ps_dpb_mgr,
                             return ret;
                         if(u1_del_node)
                         {
-                            return ERROR_DBP_MANAGER_T;
+                            return 0;
                         }
                     }
                 }
@@ -1789,7 +1735,7 @@ WORD32 ih264d_free_node_from_dpb(dpb_manager_t *ps_dpb_mgr,
         UWORD8 u1_new_node_flag = 1;
         if((0 == ps_dpb_mgr->u1_num_st_ref_bufs) && (0 == u1_num_gaps))
         {
-            return ERROR_DBP_MANAGER_T;
+            return 0;
         }
 
         // Chase the links to reach the last but one picNum, if available
@@ -1809,7 +1755,9 @@ WORD32 ih264d_free_node_from_dpb(dpb_manager_t *ps_dpb_mgr,
             for(i = 1; i < (ps_dpb_mgr->u1_num_st_ref_bufs - 1); i++)
             {
                 if(ps_next_dpb == NULL)
-                    return ERROR_DBP_MANAGER_T;
+                {
+                    return 0;
+                }
 
                 if(ps_next_dpb->i4_frame_num == (WORD32)u4_cur_pic_num)
                 {
@@ -1823,7 +1771,9 @@ WORD32 ih264d_free_node_from_dpb(dpb_manager_t *ps_dpb_mgr,
             }
 
             if(ps_next_dpb->ps_prev_short->ps_prev_short != NULL)
-                return ERROR_DBP_MANAGER_T;
+            {
+                return 0;
+            }
 
             if(u1_new_node_flag)
             {
@@ -1879,7 +1829,9 @@ WORD32 ih264d_free_node_from_dpb(dpb_manager_t *ps_dpb_mgr,
                 if(ret != OK)
                     return ret;
                 if(u1_del_node)
-                    return ERROR_DBP_MANAGER_T;
+                {
+                    return 0;
+                }
             }
         }
     }
